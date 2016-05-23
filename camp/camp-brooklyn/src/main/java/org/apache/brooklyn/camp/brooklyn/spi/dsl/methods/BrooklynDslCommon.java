@@ -26,6 +26,14 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.beanutils.BeanUtils;
+
+import com.google.common.base.Function;
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.mgmt.Task;
 import org.apache.brooklyn.api.mgmt.TaskAdaptable;
@@ -55,12 +63,6 @@ import org.apache.brooklyn.util.exceptions.Exceptions;
 import org.apache.brooklyn.util.javalang.Reflections;
 import org.apache.brooklyn.util.text.StringEscapes.JavaStringEscapes;
 import org.apache.brooklyn.util.text.Strings;
-import org.apache.commons.beanutils.BeanUtils;
-
-import com.google.common.base.Function;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /** static import functions which can be used in `$brooklyn:xxx` contexts */
 public class BrooklynDslCommon {
@@ -110,6 +112,14 @@ public class BrooklynDslCommon {
 
     public static BrooklynDslDeferredSupplier<?> attributeWhenReady(String sensorName) {
         return new DslComponent(Scope.THIS, "").attributeWhenReady(sensorName);
+    }
+
+    public static BrooklynDslDeferredSupplier<?> effector(String effectorName, Map<String, ?> args) {
+        return new DslComponent(Scope.THIS, "").effector(effectorName, args);
+    }
+
+    public static BrooklynDslDeferredSupplier<?> effector(String effectorName) {
+        return new DslComponent(Scope.THIS, "").effector(effectorName, ImmutableMap.<String, Object>of());
     }
 
     /** Returns a {@link Sensor}, looking up the sensor on the context if available and using that,

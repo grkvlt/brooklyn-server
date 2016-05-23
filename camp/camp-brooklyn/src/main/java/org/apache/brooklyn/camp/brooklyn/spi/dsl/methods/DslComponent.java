@@ -18,10 +18,19 @@
  */
 package org.apache.brooklyn.camp.brooklyn.spi.dsl.methods;
 
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+
+import org.apache.brooklyn.api.effector.Effector;
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.mgmt.Task;
 import org.apache.brooklyn.api.sensor.AttributeSensor;
@@ -40,12 +49,6 @@ import org.apache.brooklyn.util.core.task.TaskBuilder;
 import org.apache.brooklyn.util.core.task.Tasks;
 import org.apache.brooklyn.util.guava.Maybe;
 import org.apache.brooklyn.util.text.StringEscapes.JavaStringEscapes;
-
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 public class DslComponent extends BrooklynDslDeferredSupplier<Entity> {
 
@@ -224,6 +227,53 @@ public class DslComponent extends BrooklynDslDeferredSupplier<Entity> {
         public String toString() {
             return (component.scope==Scope.THIS ? "" : component.toString()+".") +
                 "attributeWhenReady("+JavaStringEscapes.wrapJavaString(sensorName)+")";
+        }
+    }
+
+    public BrooklynDslDeferredSupplier<?> effector(final String effectorName) {
+        return new ExecuteEffector(this, effectorName, ImmutableMap.<String, Object>of());
+    }
+    public BrooklynDslDeferredSupplier<?> effector(final String effectorName, final Map<String, ?> args) {
+        return new ExecuteEffector(this, effectorName, args);
+    }
+    // class simply makes the memento XML files nicer
+    protected static class ExecuteEffector extends BrooklynDslDeferredSupplier<Object> {
+        private static final long serialVersionUID = 1740899524088902383L;
+        private final DslComponent component;
+        private final String effectorName;
+        private final Map<String, ?> args;
+        public ExecuteEffector(DslComponent component, String effectorName, Map<String, ?> args) {
+            this.component = Preconditions.checkNotNull(component);
+            this.effectorName = effectorName;
+            this.args = args;
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public Task<Object> newTask() {
+            Entity targetEntity = component.get();
+            Maybe<Effector<?>> targetEffector = targetEntity.getEntityType().getEffectorByName(effectorName);
+            if (targetEffector.isAbsentOrNull()) {
+                throw new IllegalArgumentException("Effector " + effectorName + " not found on entity: " + targetEntity);
+            }
+            return (Task<Object>) Entities.invokeEffector(targetEntity, targetEntity, targetEffector.get(), args);
+        }
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(component, effectorName);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            ExecuteEffector that = ExecuteEffector.class.cast(obj);
+            return Objects.equal(this.component, that.component) &&
+                    Objects.equal(this.effectorName, that.effectorName);
+        }
+        @Override
+        public String toString() {
+            return (component.scope==Scope.THIS ? "" : component.toString()+".") +
+                "effector("+JavaStringEscapes.wrapJavaString(effectorName)+")";
         }
     }
 
