@@ -28,6 +28,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.Beta;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.api.entity.Group;
@@ -54,18 +63,9 @@ import org.apache.brooklyn.util.core.flags.SetFromFlag;
 import org.apache.brooklyn.util.core.flags.TypeCoercions;
 import org.apache.brooklyn.util.guava.Maybe;
 import org.apache.brooklyn.util.text.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.Beta;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-
 
 /**
- * Common functionality for policies and enrichers
+ * Common functionality for initializers, policies and enrichers
  */
 public abstract class AbstractEntityAdjunct extends AbstractBrooklynObject implements BrooklynObjectInternal, EntityAdjunct, Configurable {
     private static final Logger log = LoggerFactory.getLogger(AbstractEntityAdjunct.class);

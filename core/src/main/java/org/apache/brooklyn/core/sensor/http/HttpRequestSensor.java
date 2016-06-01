@@ -25,12 +25,13 @@ import net.minidev.json.JSONObject;
 import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
-import org.apache.brooklyn.core.effector.AddSensor;
+import org.apache.brooklyn.core.sensor.AddSensor;
 import org.apache.brooklyn.core.sensor.ssh.SshCommandSensor;
 import org.apache.brooklyn.feed.http.HttpFeed;
 import org.apache.brooklyn.feed.http.HttpPollConfig;
 import org.apache.brooklyn.feed.http.HttpValueFunctions;
 import org.apache.brooklyn.util.core.config.ConfigBag;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

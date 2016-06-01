@@ -27,8 +27,8 @@ import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.api.mgmt.Task;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
-import org.apache.brooklyn.core.effector.AddSensor;
 import org.apache.brooklyn.core.entity.EntityInitializers;
+import org.apache.brooklyn.core.sensor.AddSensor;
 import org.apache.brooklyn.core.sensor.DependentConfiguration;
 import org.apache.brooklyn.core.sensor.http.HttpRequestSensor;
 import org.apache.brooklyn.core.sensor.ssh.SshCommandSensor;
@@ -39,6 +39,7 @@ import org.apache.brooklyn.util.core.config.ConfigBag;
 import org.apache.brooklyn.util.core.task.DynamicTasks;
 import org.apache.brooklyn.util.core.task.Tasks;
 import org.apache.brooklyn.util.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -26,7 +26,6 @@ import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.api.sensor.AttributeSensor;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
-import org.apache.brooklyn.core.effector.AddSensor;
 import org.apache.brooklyn.feed.function.FunctionFeed;
 import org.apache.brooklyn.feed.function.FunctionPollConfig;
 import org.apache.brooklyn.util.core.config.ConfigBag;

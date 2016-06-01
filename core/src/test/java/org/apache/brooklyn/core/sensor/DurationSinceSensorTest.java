@@ -28,11 +28,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.sensor.AttributeSensor;
-import org.apache.brooklyn.core.effector.AddSensor;
 import org.apache.brooklyn.core.test.BrooklynAppUnitTestSupport;
 import org.apache.brooklyn.core.test.entity.TestEntity;
 import org.apache.brooklyn.util.core.config.ConfigBag;
 import org.apache.brooklyn.util.time.Duration;
+
 import org.testng.annotations.Test;
 
 import com.google.common.base.Supplier;

@@ -24,9 +24,9 @@ import org.apache.brooklyn.api.entity.EntityInitializer;
 import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
-import org.apache.brooklyn.core.effector.AddSensor;
 import org.apache.brooklyn.core.entity.BrooklynConfigKeys;
 import org.apache.brooklyn.core.entity.EntityInitializers;
+import org.apache.brooklyn.core.sensor.AddSensor;
 import org.apache.brooklyn.core.sensor.http.HttpRequestSensor;
 import org.apache.brooklyn.feed.ssh.SshFeed;
 import org.apache.brooklyn.feed.ssh.SshPollConfig;
@@ -37,6 +37,7 @@ import org.apache.brooklyn.util.core.flags.TypeCoercions;
 import org.apache.brooklyn.util.core.task.Tasks;
 import org.apache.brooklyn.util.os.Os;
 import org.apache.brooklyn.util.text.Strings;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
