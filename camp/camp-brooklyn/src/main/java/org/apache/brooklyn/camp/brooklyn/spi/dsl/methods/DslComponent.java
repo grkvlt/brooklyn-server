@@ -18,6 +18,7 @@
  */
 package org.apache.brooklyn.camp.brooklyn.spi.dsl.methods;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -26,6 +27,7 @@ import java.util.concurrent.Callable;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -45,6 +47,7 @@ import org.apache.brooklyn.core.mgmt.BrooklynTaskTags;
 import org.apache.brooklyn.core.mgmt.internal.EntityManagerInternal;
 import org.apache.brooklyn.core.sensor.DependentConfiguration;
 import org.apache.brooklyn.core.sensor.Sensors;
+import org.apache.brooklyn.util.core.task.HasSideEffects;
 import org.apache.brooklyn.util.core.task.TaskBuilder;
 import org.apache.brooklyn.util.core.task.Tasks;
 import org.apache.brooklyn.util.guava.Maybe;
@@ -236,16 +239,29 @@ public class DslComponent extends BrooklynDslDeferredSupplier<Entity> {
     public BrooklynDslDeferredSupplier<?> effector(final String effectorName, final Map<String, ?> args) {
         return new ExecuteEffector(this, effectorName, args);
     }
+    public BrooklynDslDeferredSupplier<?> effector(final String effectorName, String... args) {
+        return new ExecuteEffector(this, effectorName, ImmutableList.copyOf(args));
+    }
+
     // class simply makes the memento XML files nicer
-    protected static class ExecuteEffector extends BrooklynDslDeferredSupplier<Object> {
+    protected static class ExecuteEffector extends BrooklynDslDeferredSupplier<Object> implements HasSideEffects {
         private static final long serialVersionUID = 1740899524088902383L;
         private final DslComponent component;
         private final String effectorName;
         private final Map<String, ?> args;
+        private final List<String> argList;
+        private Task<?> cachedTask;
         public ExecuteEffector(DslComponent component, String effectorName, Map<String, ?> args) {
             this.component = Preconditions.checkNotNull(component);
             this.effectorName = effectorName;
             this.args = args;
+            this.argList = null;
+        }
+        public ExecuteEffector(DslComponent component, String effectorName, List<String> args) {
+            this.component = Preconditions.checkNotNull(component);
+            this.effectorName = effectorName;
+            this.argList = args;
+            this.args = null;
         }
         @SuppressWarnings("unchecked")
         @Override
@@ -255,8 +271,14 @@ public class DslComponent extends BrooklynDslDeferredSupplier<Entity> {
             if (targetEffector.isAbsentOrNull()) {
                 throw new IllegalArgumentException("Effector " + effectorName + " not found on entity: " + targetEntity);
             }
-            return (Task<Object>) Entities.invokeEffector(targetEntity, targetEntity, targetEffector.get(), args);
+            if (null == cachedTask) {
+                cachedTask = null == argList
+                    ? Entities.invokeEffector(targetEntity, targetEntity, targetEffector.get(), args)
+                    : Entities.invokeEffectorWithArgs(targetEntity, targetEntity, targetEffector.get(), argList.toArray());
+            }
+            return (Task<Object>) cachedTask;
         }
+
         @Override
         public int hashCode() {
             return Objects.hashCode(component, effectorName);

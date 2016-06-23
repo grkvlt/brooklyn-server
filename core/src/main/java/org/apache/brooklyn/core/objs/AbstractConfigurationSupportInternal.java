@@ -65,6 +65,7 @@ public abstract class AbstractConfigurationSupportInternal implements BrooklynOb
                 .timeout(ValueResolver.REAL_REAL_QUICK_WAIT)
                 .context(getContext())
                 .swallowExceptions()
+                .avoidSideEffects()
                 .get();
         return (resolved != marker)
                ? TypeCoercions.tryCoerce(resolved, key.getTypeToken())

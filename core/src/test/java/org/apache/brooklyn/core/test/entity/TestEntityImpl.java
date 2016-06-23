@@ -46,6 +46,7 @@ public class TestEntityImpl extends AbstractEntity implements TestEntity {
 
     protected int sequenceValue = 0;
     protected AtomicInteger counter = new AtomicInteger(0);
+    protected AtomicInteger effectorCount = new AtomicInteger(0);
     protected Map<?,?> constructorProperties;
     protected Map<?,?> configureProperties;
     protected List<String> callHistory = Collections.synchronizedList(Lists.<String>newArrayList());
@@ -86,7 +87,13 @@ public class TestEntityImpl extends AbstractEntity implements TestEntity {
         callHistory.add("identityEffector");
         return checkNotNull(arg, "arg");
     }
-    
+
+    @Override
+    public Integer sequenceEffector() {
+        callHistory.add("sequenceEffector");
+        return effectorCount.incrementAndGet();
+    }
+
     @Override
     public AtomicInteger getCounter() {
         return counter;
