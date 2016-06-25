@@ -20,6 +20,7 @@ package org.apache.brooklyn.camp.brooklyn;
 
 import com.google.common.collect.Iterables;
 import org.apache.brooklyn.api.entity.Entity;
+import org.apache.brooklyn.core.entity.EntityPredicates;
 import org.apache.brooklyn.core.test.entity.TestEntity;
 import org.apache.brooklyn.entity.software.base.VanillaSoftwareProcess;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static com.google.common.collect.Iterables.filter;
 import static org.apache.brooklyn.core.entity.EntityPredicates.displayNameEqualTo;
 import static org.testng.Assert.assertEquals;
 
@@ -81,7 +83,7 @@ public class EffectorsYamlTest extends AbstractYamlTest {
     }
 
     @Test
-    public void testEffectorWithReturn() throws Exception {
+    public void testEntityEffectorWithReturn() throws Exception {
 
         Entity app = createAndStartApplication(
             "services:",
@@ -109,6 +111,27 @@ public class EffectorsYamlTest extends AbstractYamlTest {
         TestEntity testEntity = (TestEntity)Iterables.getOnlyElement(app.getChildren());
         Assert.assertEquals(testEntity.getConfig(TestEntity.CONF_NAME), "my own effector");
         assertCallHistory(testEntity, "start", "identityEffector");
+    }
+
+    @Test
+    public void testEffectorOnOtherEntityWithReturn() throws Exception {
+
+        Entity app = createAndStartApplication(
+            "services:",
+            "- type: " + TestEntity.class.getName(),
+            "  id: entityOne",
+            "  name: entityOne",
+            "- type: " + TestEntity.class.getName(),
+            "  id: entityTwo",
+            "  name: entityTwo",
+            "  brooklyn.config:",
+            "    test.confName: ",
+            "      $brooklyn:entity(\"entityOne\").effector(\"identityEffector\", \"entityOne effector\")"
+        );
+        TestEntity entityOne = (TestEntity) filter(app.getChildren(), displayNameEqualTo("entityOne")).iterator().next();
+        TestEntity entityTwo = (TestEntity) filter(app.getChildren(), displayNameEqualTo("entityTwo")).iterator().next();
+        Assert.assertEquals(entityTwo.getConfig(TestEntity.CONF_NAME), "entityOne effector");
+        assertCallHistory(entityOne, "start", "identityEffector");
     }
 
     private void assertCallHistory(TestEntity testEntity, String... expectedCalls) {
@@ -144,41 +167,6 @@ public class EffectorsYamlTest extends AbstractYamlTest {
         Assert.assertEquals(secondGetConfig, "1");
         Assert.assertEquals(testEntity.getConfig(TestEntity.CONF_OBJECT), Integer.valueOf(2));
         assertCallHistory(testEntity, "start", "sequenceEffector", "sequenceEffector");
-    }
-
-    @Test(groups = "Integration")
-    public void testSshCommandSensorWithEffectorInEnv() throws Exception {
-
-        final Path tempFile = Files.createTempFile("testSshCommandSensorWithEffectorInEnv", ".txt");
-        getLogger().info("Temp file is {}", tempFile.toAbsolutePath());
-
-        try {
-            Entity app = createAndStartApplication(
-                "location: localhost:(name=localhost)",
-                "services:",
-                "- type: " + TestEntity.class.getName(),
-                "  id: testEnt1",
-                "  name: testEnt1",
-                "- type: " + VanillaSoftwareProcess.class.getName(),
-                "  id: vsp",
-                "  brooklyn.config:",
-                "    launch.command: echo ${MY_ENV_VAR} > " + tempFile.toAbsolutePath(),
-                "    checkRunning.command: true",
-                "    shell.env:",
-                "      MY_ENV_VAR:" ,
-                "        $brooklyn:entity(\"testEnt1\").effector(\"identityEffector\", \"from effector\")"
-            );
-            waitForApplicationTasks(app);
-
-            final TestEntity testEnt1 =
-                (TestEntity) Iterables.filter(app.getChildren(), displayNameEqualTo("testEnt1")).iterator().next();
-            assertCallHistory(testEnt1, "start", "identityEffector");
-            final String contents = new String(Files.readAllBytes(tempFile)).trim();
-            assertEquals(contents, "from effector", "file contents: " + contents);
-
-        } finally {
-            Files.delete(tempFile);
-        }
     }
     
     @Override
