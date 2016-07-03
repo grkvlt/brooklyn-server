@@ -26,6 +26,18 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.annotations.Beta;
+import com.google.common.base.Function;
+import com.google.common.base.Objects;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.reflect.TypeToken;
+
 import org.apache.brooklyn.api.catalog.CatalogConfig;
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntitySpec;
@@ -42,21 +54,12 @@ import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.config.ConfigKey.HasConfigKey;
 import org.apache.brooklyn.core.config.BasicConfigKey;
 import org.apache.brooklyn.core.config.BasicConfigKey.Builder;
+import org.apache.brooklyn.core.config.ConfigPredicates;
 import org.apache.brooklyn.core.sensor.PortAttributeSensorAndConfigKey;
 import org.apache.brooklyn.util.collections.MutableList;
 import org.apache.brooklyn.util.guava.Maybe;
 import org.apache.brooklyn.util.text.StringPredicates;
 import org.apache.brooklyn.util.time.Duration;
-
-import com.google.common.annotations.Beta;
-import com.google.common.base.Function;
-import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.reflect.TypeToken;
 
 public class BasicSpecParameter<T> implements SpecParameter<T>{
     private static final long serialVersionUID = -4728186276307619778L;
@@ -384,5 +387,34 @@ public class BasicSpecParameter<T> implements SpecParameter<T>{
         }
     }
 
+    /**
+     * Adds the given list of {@link SpecParameter parameters} to the provided
+     * {@link AbstractBrooklynObjectSpec spec}. Inherits parent parameters except
+     * where there is an existing {@link ConfigKey config key}.
+     * <p>
+     * Implemented by explicitly replacing the existing parameters with an
+     * updated list.
+     *
+     * @see EntitySpec#parameters(List)
+     */
+    public static void addParameters(AbstractBrooklynObjectSpec<?, ?> spec, List<? extends SpecParameter<?>> explicitParams, BrooklynClassLoadingContext loader) {
+        if (explicitParams.size() > 0) {
+            List<SpecParameter<?>> currentParams = MutableList.copyOf(spec.getParameters());
+            Map<ConfigKey<?>, ?> currentConfig = spec.getConfig();
+            for (final SpecParameter<?> param : explicitParams) {
+                Optional<ConfigKey<?>> configExists = Iterables.tryFind(currentConfig.keySet(), ConfigPredicates.nameEqualTo(param.getConfigKey().getName()));
+                if (!configExists.isPresent()) {
+                    Optional<SpecParameter<?>> paramExists = Iterables.tryFind(currentParams, SpecParameterPredicates.sameName(param));
+                    if (paramExists.isPresent()) {
+                        currentParams.remove(paramExists.get());
+                    }
+                    currentParams.add(param);
+                }
+            }
+            spec.parametersReplace(currentParams);
+        } else if (spec.getParameters().isEmpty()) {
+            spec.parametersAdd(BasicSpecParameter.fromSpec(loader.getManagementContext(), spec));
+        }
+    }
 
 }
