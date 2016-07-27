@@ -23,11 +23,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.CaseFormat;
+import com.google.common.base.Converter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
 import com.google.common.reflect.TypeToken;
 
 import org.apache.brooklyn.api.entity.Entity;
+import org.apache.brooklyn.camp.brooklyn.spi.dsl.methods.DslComponent.Scope;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.test.Asserts;
 import org.apache.brooklyn.util.core.flags.TypeCoercions;
@@ -42,27 +46,117 @@ import org.apache.brooklyn.util.text.Strings;
  */
 public class TestFrameworkAssertions {
 
-    public static final String IS_NULL = "isNull";
-    public static final String NOT_NULL = "notNull";
-    public static final String IS_EQUAL_TO = "isEqualTo";
-    public static final String EQUAL_TO = "equalTo";
-    public static final String EQUALS = "equals";
-    public static final String MATCHES = "matches";
-    public static final String CONTAINS = "contains";
-    public static final String IS_EMPTY = "isEmpty";
-    public static final String NOT_EMPTY = "notEmpty";
-    public static final String HAS_TRUTH_VALUE = "hasTruthValue";
-    public static final String UNKNOWN_CONDITION = "unknown condition";
+    public enum Condition {
+        IS_NULL {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return isTrue(expected) == (actual == null);
+            }
+        },
+        NOT_NULL {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return isTrue(expected) == (actual != null);
+            }
+        },
+        IS_EQUAL_TO {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return (actual != null) && actual.equals(expected);
+            }
+        },
+        EQUAL_TO {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return (actual != null) && actual.equals(expected);
+            }
+        },
+        EQUALS {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return (actual != null) && actual.equals(expected);
+            }
+        },
+        MATCHES {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return (actual != null) && actual.toString().matches(expected.toString());
+            }
+        },
+        CONTAINS {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                if (actual instanceof Iterable) {
+                    return (actual != null) && Iterables.contains((Iterable<?>) actual, expected);
+                } else {
+                    return (actual != null) && actual.toString().contains(expected.toString());
+                }
+            }
+        },
+        IS_EMPTY {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                if (actual instanceof Iterable) {
+                    return isTrue(expected) == (actual != null && Iterables.isEmpty((Iterable<?>) actual));
+                } else {
+                    return isTrue(expected) == (actual != null && Strings.isEmpty(actual.toString()));
+                }
+            }
+        },
+        NOT_EMPTY {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                if (actual instanceof Iterable) {
+                    return isTrue(expected) == (actual != null && Iterables.size((Iterable<?>) actual) > 0);
+                } else {
+                    return isTrue(expected) == (actual != null && Strings.isNonEmpty(actual.toString()));
+                }
+            }
+        },
+        HAS_TRUTH_VALUE {
+            @Override
+            public boolean check(Object actual, Object expected) {
+                return isTrue(expected) == isTrue(actual);
+            }
+        };
 
+        public static Condition UNKNOWN = null;
 
-    private TestFrameworkAssertions() {
+        private static Converter<String, String> converter = CaseFormat.LOWER_CAMEL.converterTo(CaseFormat.UPPER_UNDERSCORE);
+
+        public static Condition fromString(String name) {
+            Maybe<Condition> parsed = tryFromString(name);
+            return parsed.get();
+        }
+
+        public static Maybe<Condition> tryFromString(String name) {
+            try {
+                Condition scope = valueOf(converter.convert(name));
+                return Maybe.of(scope);
+            } catch (Exception cause) {
+                return Maybe.absent(cause);
+            }
+        }
+
+        public static boolean isValid(String name) {
+            Maybe<Condition> check = tryFromString(name);
+            return check.isPresentAndNonNull();
+        }
+
+        @Override
+        public String toString() {
+            return converter.reverse().convert(name());
+        }
+
+        public abstract boolean check(Object actual, Object expected);
+
     }
 
+    private TestFrameworkAssertions() { }
 
     /**
-     *  Get assertions tolerantly from a configuration key.
-     *  This supports either a simple map of assertions, such as
-     *
+     * Get assertions tolerantly from a configuration key.
+     * This supports either a simple map of assertions, such as
      * <pre>
      * assertOut:
      *   contains: 2 users
@@ -96,23 +190,13 @@ public class TestFrameworkAssertions {
         throw new FatalConfigurationRuntimeException(key.getDescription() + " is not a map or list of maps");
     }
 
-
-    public static <T> void checkAssertions(Map<String,?> flags,
-                                           Map<String, Object> assertions,
-                                           String target,
-                                           final Supplier<T> actualSupplier) {
-
+    public static <T> void checkAssertions(Map<String,?> flags, Map<String, Object> assertions, String target, Supplier<T> actualSupplier) {
         AssertionSupport support = new AssertionSupport();
         checkAssertions(support, flags, assertions, target, actualSupplier);
         support.validate();
     }
 
-
-    public static <T> void checkAssertions(Map<String,?> flags,
-                                           List<Map<String, Object>> assertions,
-                                           String target,
-                                           final Supplier<T> actualSupplier) {
-
+    public static <T> void checkAssertions(Map<String,?> flags, List<Map<String, Object>> assertions, String target, Supplier<T> actualSupplier) {
         AssertionSupport support = new AssertionSupport();
         for (Map<String, Object> assertionMap : assertions) {
             checkAssertions(support, flags, assertionMap, target, actualSupplier);
@@ -120,24 +204,14 @@ public class TestFrameworkAssertions {
         support.validate();
     }
 
-    public static <T> void checkAssertions(final AssertionSupport support,
-                                           Map<String,?> flags,
-                                           final List<Map<String, Object>> assertions,
-                                           final String target,
-                                           final Supplier<T> actualSupplier) {
-
+    public static <T> void checkAssertions(AssertionSupport support, Map<String,?> flags, List<Map<String, Object>> assertions, String target, Supplier<T> actualSupplier) {
         for (Map<String, Object> assertionMap : assertions) {
             checkAssertions(support, flags, assertionMap, target, actualSupplier);
         }
     }
 
-    public static <T> void checkAssertions(final AssertionSupport support,
-                                           Map<String,?> flags,
-                                           final Map<String, Object> assertions,
-                                           final String target,
-                                           final Supplier<T> actualSupplier) {
-
-        if (null == assertions) {
+    public static <T> void checkAssertions(AssertionSupport support, Map<String,?> flags, final Map<String, Object> assertions, final String target, final Supplier<T> actualSupplier) {
+        if (assertions == null) {
             return;
         }
         try {
@@ -153,8 +227,7 @@ public class TestFrameworkAssertions {
         }
     }
 
-    public static <T> void checkActualAgainstAssertions(AssertionSupport support,
-            Map<String, Object> assertions, String target, T actual) {
+    public static <T> void checkActualAgainstAssertions(AssertionSupport support, Map<String, Object> assertions, String target, T actual) {
         try {
             checkActualAgainstAssertions(assertions, target, actual);
         } catch (Throwable t) {
@@ -162,77 +235,22 @@ public class TestFrameworkAssertions {
         }
     }
 
-    public static <T> void checkActualAgainstAssertions(Map<String, Object> assertions,
-                                                         String target, T actual) {
+    public static <T> void checkActualAgainstAssertions(Map<String, Object> assertions, String target, T actual) {
         for (Map.Entry<String, Object> assertion : assertions.entrySet()) {
-            String condition = assertion.getKey().toString();
+            Maybe<Condition> condition = Condition.tryFromString(assertion.getKey());
             Object expected = assertion.getValue();
-            switch (condition) {
 
-                case IS_EQUAL_TO :
-                case EQUAL_TO :
-                case EQUALS :
-                    if (null == actual || !actual.equals(expected)) {
-                        failAssertion(target, EQUALS, expected);
-                    }
-                    break;
-
-                case IS_NULL :
-                    if (isTrue(expected) != (null == actual)) {
-                        failAssertion(target, IS_NULL, expected);
-                    }
-                    break;
-
-                case NOT_NULL :
-                    if (isTrue(expected) != (null != actual)) {
-                        failAssertion(target, NOT_NULL, expected);
-                    }
-                    break;
-
-                case CONTAINS :
-                    if (null == actual || !actual.toString().contains(expected.toString())) {
-                        failAssertion(target, CONTAINS, expected);
-                    }
-                    break;
-
-                case IS_EMPTY :
-                    if (isTrue(expected) != (null == actual || Strings.isEmpty(actual.toString()))) {
-                        failAssertion(target, IS_EMPTY, expected);
-                    }
-                    break;
-
-                case NOT_EMPTY :
-                    if (isTrue(expected) != ((null != actual && Strings.isNonEmpty(actual.toString())))) {
-                        failAssertion(target, NOT_EMPTY, expected);
-                    }
-                    break;
-
-                case MATCHES :
-                    if (null == actual || !actual.toString().matches(expected.toString())) {
-                        failAssertion(target, MATCHES, expected);
-                    }
-                    break;
-
-                case HAS_TRUTH_VALUE :
-                    if (isTrue(expected) != isTrue(actual)) {
-                        failAssertion(target, HAS_TRUTH_VALUE, expected);
-                    }
-                    break;
-
-                default:
-                    failAssertion(target, UNKNOWN_CONDITION, condition);
+            if (condition.isAbsentOrNull() || !condition.get().check(target, expected)) {
+                failAssertion(target, condition.or(Condition.UNKNOWN), expected);
             }
         }
     }
 
-    static void failAssertion(String target, String assertion, Object expected) {
-        throw new AssertionError(Joiner.on(' ').join(
-            null != target ? target : "null",
-            null != assertion ? assertion : "null",
-            null != expected ? expected : "null"));
+    public static void failAssertion(String target, Condition assertion, Object expected) {
+        throw new AssertionError(Joiner.on(' ').useForNull("null").join(target, assertion, expected));
     }
 
-    private static boolean isTrue(Object object) {
+    public static boolean isTrue(Object object) {
         return null != object && Boolean.valueOf(object.toString());
     }
 
@@ -242,11 +260,8 @@ public class TestFrameworkAssertions {
     public static class AssertionSupport {
         private List<AssertionError> failures = new ArrayList<>();
 
-        public void fail(String target, String assertion, Object expected) {
-            failures.add(new AssertionError(Joiner.on(' ').join(
-                null != target ? target : "null",
-                null != assertion ? assertion : "null",
-                null != expected ? expected : "null")));
+        public void fail(String target, Condition assertion, Object expected) {
+            failures.add(new AssertionError(Joiner.on(' ').useForNull("null").join(target, assertion, expected)));
         }
 
         public void fail(Throwable throwable) {
@@ -257,12 +272,10 @@ public class TestFrameworkAssertions {
          * @throws AssertionError if any failures were collected.
          */
         public void validate() {
-            if (0 < failures.size()) {
-
-                if (1 == failures.size()) {
+            if (failures.size() > 0) {
+                if (failures.size() == 1) {
                     throw failures.get(0);
                 }
-
                 StringBuilder builder = new StringBuilder();
                 for (AssertionError assertionError : failures) {
                     builder.append(assertionError.getMessage()).append("\n");
