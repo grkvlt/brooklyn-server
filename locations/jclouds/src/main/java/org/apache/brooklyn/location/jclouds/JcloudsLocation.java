@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,6 +49,68 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.xml.ws.WebServiceException;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
+import com.google.common.io.Files;
+import com.google.common.net.HostAndPort;
+
+import org.jclouds.aws.ec2.compute.AWSEC2TemplateOptions;
+import org.jclouds.cloudstack.compute.options.CloudStackTemplateOptions;
+import org.jclouds.compute.ComputeService;
+import org.jclouds.compute.RunNodesException;
+import org.jclouds.compute.config.AdminAccessConfiguration;
+import org.jclouds.compute.domain.ComputeMetadata;
+import org.jclouds.compute.domain.Hardware;
+import org.jclouds.compute.domain.Image;
+import org.jclouds.compute.domain.NodeMetadata;
+import org.jclouds.compute.domain.NodeMetadata.Status;
+import org.jclouds.compute.domain.NodeMetadataBuilder;
+import org.jclouds.compute.domain.OperatingSystem;
+import org.jclouds.compute.domain.OsFamily;
+import org.jclouds.compute.domain.Template;
+import org.jclouds.compute.domain.TemplateBuilder;
+import org.jclouds.compute.domain.TemplateBuilderSpec;
+import org.jclouds.compute.functions.Sha512Crypt;
+import org.jclouds.compute.options.TemplateOptions;
+import org.jclouds.domain.Credentials;
+import org.jclouds.domain.LocationScope;
+import org.jclouds.domain.LoginCredentials;
+import org.jclouds.ec2.compute.options.EC2TemplateOptions;
+import org.jclouds.openstack.nova.v2_0.compute.options.NovaTemplateOptions;
+import org.jclouds.rest.AuthorizationException;
+import org.jclouds.scriptbuilder.domain.LiteralStatement;
+import org.jclouds.scriptbuilder.domain.Statement;
+import org.jclouds.scriptbuilder.domain.StatementList;
+import org.jclouds.scriptbuilder.functions.InitAdminAccess;
+import org.jclouds.scriptbuilder.statements.login.AdminAccess;
+import org.jclouds.scriptbuilder.statements.login.ReplaceShadowPasswordEntry;
+import org.jclouds.scriptbuilder.statements.ssh.AuthorizeRSAPublicKeys;
+import org.jclouds.softlayer.compute.options.SoftLayerTemplateOptions;
+import org.jclouds.util.Predicates2;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.location.LocationSpec;
@@ -63,6 +126,7 @@ import org.apache.brooklyn.config.ConfigKey.HasConfigKey;
 import org.apache.brooklyn.core.BrooklynVersion;
 import org.apache.brooklyn.core.config.ConfigUtils;
 import org.apache.brooklyn.core.config.Sanitizer;
+import org.apache.brooklyn.core.entity.EntityInternal;
 import org.apache.brooklyn.core.location.AbstractLocation;
 import org.apache.brooklyn.core.location.BasicMachineMetadata;
 import org.apache.brooklyn.core.location.LocationConfigKeys;
@@ -130,66 +194,6 @@ import org.apache.brooklyn.util.text.KeyValueParser;
 import org.apache.brooklyn.util.text.Strings;
 import org.apache.brooklyn.util.time.Duration;
 import org.apache.brooklyn.util.time.Time;
-import org.apache.commons.lang3.ArrayUtils;
-import org.jclouds.aws.ec2.compute.AWSEC2TemplateOptions;
-import org.jclouds.cloudstack.compute.options.CloudStackTemplateOptions;
-import org.jclouds.compute.ComputeService;
-import org.jclouds.compute.RunNodesException;
-import org.jclouds.compute.config.AdminAccessConfiguration;
-import org.jclouds.compute.domain.ComputeMetadata;
-import org.jclouds.compute.domain.Hardware;
-import org.jclouds.compute.domain.Image;
-import org.jclouds.compute.domain.NodeMetadata;
-import org.jclouds.compute.domain.NodeMetadata.Status;
-import org.jclouds.compute.domain.NodeMetadataBuilder;
-import org.jclouds.compute.domain.OperatingSystem;
-import org.jclouds.compute.domain.OsFamily;
-import org.jclouds.compute.domain.Template;
-import org.jclouds.compute.domain.TemplateBuilder;
-import org.jclouds.compute.domain.TemplateBuilderSpec;
-import org.jclouds.compute.functions.Sha512Crypt;
-import org.jclouds.compute.options.TemplateOptions;
-import org.jclouds.domain.Credentials;
-import org.jclouds.domain.LocationScope;
-import org.jclouds.domain.LoginCredentials;
-import org.jclouds.ec2.compute.options.EC2TemplateOptions;
-import org.jclouds.openstack.nova.v2_0.compute.options.NovaTemplateOptions;
-import org.jclouds.rest.AuthorizationException;
-import org.jclouds.scriptbuilder.domain.LiteralStatement;
-import org.jclouds.scriptbuilder.domain.Statement;
-import org.jclouds.scriptbuilder.domain.StatementList;
-import org.jclouds.scriptbuilder.functions.InitAdminAccess;
-import org.jclouds.scriptbuilder.statements.login.AdminAccess;
-import org.jclouds.scriptbuilder.statements.login.ReplaceShadowPasswordEntry;
-import org.jclouds.scriptbuilder.statements.ssh.AuthorizeRSAPublicKeys;
-import org.jclouds.softlayer.compute.options.SoftLayerTemplateOptions;
-import org.jclouds.util.Predicates2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
-import com.google.common.io.Files;
-import com.google.common.net.HostAndPort;
 
 /**
  * For provisioning and managing VMs in a particular provider/region, using jclouds.
@@ -527,7 +531,7 @@ public class JcloudsLocation extends AbstractCloudMachineProvisioningLocation im
 
     public ComputeService getComputeService(ConfigBag config) {
         ComputeServiceRegistry registry = getConfig(COMPUTE_SERVICE_REGISTRY);
-        return registry.findComputeService(ResolvingConfigBag.newInstanceExtending(getManagementContext(), config), true);
+        return registry.findComputeService(config, true);
     }
 
     /** @deprecated since 0.7.0 use {@link #listMachines()} */ @Deprecated
@@ -603,21 +607,37 @@ public class JcloudsLocation extends AbstractCloudMachineProvisioningLocation im
         return obtain(MutableMap.builder().putAll(flags).put(TEMPLATE_BUILDER, tb).build());
     }
 
-    /** core method for obtaining a VM using jclouds;
+    private ConfigBag getConfigBag(Map<?, ?> flags) {
+        try {
+            ConfigBag configRaw = ConfigBag.newInstanceExtending(config().getBag(), flags);
+            Object context = configRaw.get(CALLER_CONTEXT);
+            if (context instanceof Entity) {
+                Map<?,?> flagsResolved = (Map<?, ?>) Tasks.resolveDeepValue(flags, Object.class, ((EntityInternal) context).getExecutionContext());
+                configRaw = ConfigBag.newInstanceExtending(config().getBag(), flagsResolved);
+            }
+            ConfigBag config = ResolvingConfigBag.newInstanceExtending(getManagementContext(), configRaw);
+            return config;
+        } catch (InterruptedException | ExecutionException e) {
+            throw Exceptions.propagate(e);
+        }
+    }
+
+    /**
+     * Core method for obtaining a VM using jclouds.
+     * <p>
      * Map should contain CLOUD_PROVIDER and CLOUD_ENDPOINT or CLOUD_REGION, depending on the cloud,
-     * as well as ACCESS_IDENTITY and ACCESS_CREDENTIAL,
-     * plus any further properties to specify e.g. images, hardware profiles, accessing user
-     * (for initial login, and a user potentially to create for subsequent ie normal access) */
+     * as well as ACCESS_IDENTITY and ACCESS_CREDENTIAL, plus any further properties to specify
+     * e.g. images, hardware profiles, accessing user (for initial login, and a user potentially
+     * to create for subsequent ie normal access)
+     */
     @Override
     public MachineLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
-        ConfigBag setupRaw = ConfigBag.newInstanceExtending(config().getBag(), flags);
-        ConfigBag setup = ResolvingConfigBag.newInstanceExtending(getManagementContext(), setupRaw);
-
-        Map<String, Object> flagTemplateOptions = ConfigBag.newInstance(flags).get(TEMPLATE_OPTIONS);
+        ConfigBag setup = getConfigBag(flags);
+        Map<String, Object> flagTemplateOptions = setup.get(TEMPLATE_OPTIONS);
         Map<String, Object> baseTemplateOptions = config().get(TEMPLATE_OPTIONS);
         Map<String, Object> templateOptions = (Map<String, Object>) shallowMerge(Maybe.fromNullable(flagTemplateOptions), Maybe.fromNullable(baseTemplateOptions), TEMPLATE_OPTIONS).orNull();
         setup.put(TEMPLATE_OPTIONS, templateOptions);
-        
+
         Integer attempts = setup.get(MACHINE_CREATE_ATTEMPTS);
         List<Exception> exceptions = Lists.newArrayList();
         if (attempts == null || attempts < 1) attempts = 1;
