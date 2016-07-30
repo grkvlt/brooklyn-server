@@ -19,23 +19,31 @@
 package org.apache.brooklyn.entity.stock;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.util.collections.MutableList;
 
 public class ConditionalEntityImpl extends BasicStartableImpl implements ConditionalEntity {
 
     @Override
     public void start(Collection<? extends Location> locations) {
-        Entity child = sensors().get(CONDITIONAL_ENTITY);
-        EntitySpec<?> spec = config().get(CONDITIONAL_ENTITY_SPEC);
         Boolean create = config().get(CREATE_CONDITIONAL_ENTITY);
+        List<Entity> children = MutableList.copyOf(sensors().get(CONDITIONAL_ENTITY_LIST));
+        List<EntitySpec<?>> specs = MutableList.<EntitySpec<?>>builder()
+                .addIfNotNull(config().get(CONDITIONAL_ENTITY_SPEC))
+                .addAll(MutableList.copyOf(config().get(CONDITIONAL_ENTITY_SPEC_LIST)))
+                .build();
 
         // Child not yet created; Entity spec is present; Create flag is true
-        if (child == null && spec != null && Boolean.TRUE.equals(create)) {
-            Entity created = addChild(EntitySpec.create(spec));
-            sensors().set(CONDITIONAL_ENTITY, created);
+        if (children.isEmpty() && specs.size() > 0 && Boolean.TRUE.equals(create)) {
+            for (EntitySpec<?> spec : specs) {
+                Entity created = addChild(EntitySpec.create(spec));
+                children.add(created);
+            }
+            sensors().set(CONDITIONAL_ENTITY_LIST, children);
         }
         super.start(locations);
     }

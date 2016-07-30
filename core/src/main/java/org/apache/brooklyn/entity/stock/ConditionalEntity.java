@@ -18,7 +18,10 @@
  */
 package org.apache.brooklyn.entity.stock;
 
+import java.util.List;
+
 import com.google.common.annotations.Beta;
+import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 
 import org.apache.brooklyn.api.entity.Entity;
@@ -51,11 +54,23 @@ import org.apache.brooklyn.util.core.flags.SetFromFlag;
 public interface ConditionalEntity extends BasicStartable {
 
     @SetFromFlag("entitySpec")
-    ConfigKey<EntitySpec<?>> CONDITIONAL_ENTITY_SPEC = ConfigKeys.newConfigKey(new TypeToken<EntitySpec<?>>() { }, "conditional.entity.spec", "The entity specification to be created");
+    ConfigKey<EntitySpec<?>> CONDITIONAL_ENTITY_SPEC = ConfigKeys.newConfigKey(new TypeToken<EntitySpec<?>>() { },
+            "conditional.entity.spec",
+            "The entity specification to be created");
+
+    @SetFromFlag("entitySpecs")
+    ConfigKey<List<EntitySpec<?>>> CONDITIONAL_ENTITY_SPEC_LIST = ConfigKeys.newConfigKey(new TypeToken<List<EntitySpec<?>>>() { },
+            "conditional.entity.spec.list",
+            "A list of entity specifications to be created",
+            ImmutableList.<EntitySpec<?>>of());
 
     @SetFromFlag("create")
-    AttributeSensorAndConfigKey<Boolean, Boolean> CREATE_CONDITIONAL_ENTITY = ConfigKeys.newSensorAndConfigKey(Boolean.class, "conditional.entity.create", "Whether the entity should be created");
+    AttributeSensorAndConfigKey<Boolean, Boolean> CREATE_CONDITIONAL_ENTITY = ConfigKeys.newSensorAndConfigKey(Boolean.class,
+            "conditional.entity.create",
+            "Whether the entity should be created");
 
-    AttributeSensor<Entity> CONDITIONAL_ENTITY = Sensors.newSensor(Entity.class, "conditional.entity", "The created entity");
+    AttributeSensor<List<Entity>> CONDITIONAL_ENTITY_LIST = Sensors.newSensor(new TypeToken<List<Entity>>() { },
+            "conditional.entity.list",
+            "The list of created entities");
 
 }
