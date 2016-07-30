@@ -274,6 +274,9 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
         }
     }
 
+    public BrooklynDslDeferredSupplier<?> attribute(final String sensorName) {
+        return new AttributeWhenReady(this, sensorName, Predicates.notNull());
+    }
     public BrooklynDslDeferredSupplier<?> attributeWhenReady(final String sensorName) {
         return new AttributeWhenReady(this, sensorName);
     }
@@ -281,10 +284,15 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
         private static final long serialVersionUID = 1740899524088902383L;
         private final DslComponent<O> component;
         private final String sensorName;
+        private final Predicate readyCondition;
 
         public AttributeWhenReady(DslComponent<O> component, String sensorName) {
+            this(component, sensorName, null);
+        }
+        public AttributeWhenReady(DslComponent<O> component, String sensorName, Predicate<?> readyCondition) {
             this.component = Preconditions.checkNotNull(component);
             this.sensorName = sensorName;
+            this.readyCondition = readyCondition;
         }
 
         @SuppressWarnings("unchecked")
@@ -297,7 +305,11 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
                 if (!(targetSensor instanceof AttributeSensor<?>)) {
                     targetSensor = Sensors.newSensor(Object.class, sensorName);
                 }
-                return (Task<Object>) DependentConfiguration.attributeWhenReady(targetEntity, (AttributeSensor<?>) targetSensor);
+                if (readyCondition != null) {
+                    return (Task<Object>) DependentConfiguration.attributeWhenReady(targetEntity, (AttributeSensor<?>) targetSensor, readyCondition);
+                } else {
+                    return (Task<Object>) DependentConfiguration.attributeWhenReady(targetEntity, (AttributeSensor<?>) targetSensor);
+                }
             } else {
                 throw new IllegalArgumentException(String.format("Component must be an entity: %s", target));
             }
