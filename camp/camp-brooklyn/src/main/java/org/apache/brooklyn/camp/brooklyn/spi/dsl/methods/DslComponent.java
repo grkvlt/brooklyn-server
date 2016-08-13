@@ -278,9 +278,9 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
     public BrooklynDslDeferredSupplier<?> attributeWhenReady(final String sensorName) {
         return new AttributeWhenReady(this, sensorName);
     }
-    protected static class AttributeWhenReady extends BrooklynDslDeferredSupplier<Object> {
+    protected static class AttributeWhenReady<O extends BrooklynObject> extends BrooklynDslDeferredSupplier<Object> {
         private static final long serialVersionUID = 1740899524088903494L;
-        private final DslComponent component;
+        private final DslComponent<O> component;
         private final String sensorName;
         private final Predicate readyCondition;
 
