@@ -384,19 +384,19 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
     }
     protected final static class DslSensorSupplier<O extends BrooklynObject> extends BrooklynDslDeferredSupplier<Sensor<?>> {
         private final DslComponent<O> component;
-        private final String sensorName;
+        private final Object sensorIndicator;
 
         public DslSensorSupplier(DslComponent<O> component, Object sensorIndicator) {
             this.component = Preconditions.checkNotNull(component);
-            this.sensorName = sensorIndicator;
+            this.sensorIndicator = sensorIndicator;
         }
 
         @Override
         public Task<Sensor<?>> newTask() {
-            return Tasks.<Sensor<?>>builder().displayName("looking up sensor for "+sensorName).dynamic(false).body(new Callable<Sensor<?>>() {
+            return Tasks.<Sensor<?>>builder().displayName("looking up sensor for "+sensorIndicator).dynamic(false).body(new Callable<Sensor<?>>() {
                 @Override
                 public Sensor<?> call() throws Exception {
-                    return resolve(sensorName, false);
+                    return resolve(sensorIndicator, false);
                 }
                 
                 public Sensor<?> resolve(Object si, boolean resolved) throws ExecutionException, InterruptedException {
@@ -420,14 +420,14 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
                         final ExecutionContext executionContext = ((EntityInternal)entity()).getExecutionContext();
                         return resolve(Tasks.resolveDeepValue(si, Object.class, executionContext), true);
                     }
-                    throw new IllegalStateException("Cannot resolve '"+sensorName+"' as a sensor");
+                    throw new IllegalStateException("Cannot resolve '"+sensorIndicator+"' as a sensor");
                 }
             }).build();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(component, sensorName);
+            return Objects.hashCode(component, sensorIndicator);
         }
 
         @Override
@@ -436,16 +436,16 @@ public class DslComponent<O extends BrooklynObject> extends BrooklynDslDeferredS
             if (obj == null || getClass() != obj.getClass()) return false;
             DslSensorSupplier that = DslSensorSupplier.class.cast(obj);
             return Objects.equal(this.component, that.component) &&
-                    Objects.equal(this.sensorName, that.sensorName);
+                    Objects.equal(this.sensorIndicator, that.sensorIndicator);
         }
 
         @Override
         public String toString() {
             return (component.scope==Scope.THIS ? "" : component.toString()+".") + 
                 "sensor("+
-                    (sensorName instanceof String ? JavaStringEscapes.wrapJavaString((String)sensorName) :
-                        sensorName instanceof Sensor ? JavaStringEscapes.wrapJavaString(((Sensor<?>)sensorName).getName()) :
-                        sensorName)+")";
+                    (sensorIndicator instanceof String ? JavaStringEscapes.wrapJavaString((String)sensorIndicator) :
+                        sensorIndicator instanceof Sensor ? JavaStringEscapes.wrapJavaString(((Sensor<?>)sensorIndicator).getName()) :
+                        sensorIndicator)+")";
         }
     }
 
