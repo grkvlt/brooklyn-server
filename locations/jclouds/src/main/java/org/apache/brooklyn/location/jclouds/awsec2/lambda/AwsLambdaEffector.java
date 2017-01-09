@@ -83,7 +83,8 @@ import com.google.common.reflect.TypeToken;
  *         brooklyn.config:
  *           name: "demo"
  *           description: |
- *             AWS Lambda effector, named "demo" and executing "demo-function"
+ *             AWS Lambda effector example
+ *             Named "demo" and executing "demo-function"
  *           functionName: "demo-function"
  *           invocationType: RequestResponse
  *           logType: Tail
@@ -104,11 +105,11 @@ public final class AwsLambdaEffector extends AddEffector {
     public static final ConfigKey<String> QUALIFIER = ConfigKeys.newStringConfigKey("qualifier", "Qualifier");
     public static final ConfigKey<Duration> TIMEOUT = ConfigKeys.newDurationConfigKey("timeout", "Timeout", Duration.FIVE_MINUTES);
 
-    public static final String PAYLOAD = "payload";
-
     public static final String AWS_LAMBDA_INVOCATION_TYPE_HEADER = "X-Amz-Invocation-Type";
     public static final String AWS_LAMBDA_LOG_TYPE_HEADER = "X-Amz-Log-Type";
     public static final String AWS_LAMBDA_CLIENT_CONTEXT_HEADER = "X-Amz-Client-Context";
+
+    public static final String PAYLOAD = "payload";
 
     public AwsLambdaEffector(ConfigBag params) {
         super(newEffectorBuilder(params).build());
