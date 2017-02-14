@@ -600,6 +600,11 @@ public class DslComponent extends BrooklynDslDeferredSupplier<Entity> implements
             return (component.scope==Scope.THIS ? "" : component.toString()+".") +
                 "effector("+JavaStringEscapes.wrapJavaString(effectorName)+")";
         }
+
+        @Override
+        public Maybe<Object> getImmediately() {
+            return Maybe.absent();
+        }
     }
 
     @DslAccessible
