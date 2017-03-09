@@ -40,12 +40,12 @@ class Subscription<T> implements SubscriptionHandle {
     public Iterable<?> subscriberExtraExecTags;
     public final Entity producer;
     public final Sensor<T> sensor;
-    public final SensorEventListener<? super T> listener;
+    public final SensorEventListener<T> listener;
     public final AtomicInteger eventCount = new AtomicInteger();
     public Map<String,Object> flags;
     public Predicate<SensorEvent<T>> eventFilter;
 
-    public Subscription(Entity producer, Sensor<T> sensor, SensorEventListener<? super T> listener) {
+    public Subscription(Entity producer, Sensor<T> sensor, SensorEventListener<T> listener) {
         this.producer = producer;
         this.sensor = sensor;
         this.listener = listener;
