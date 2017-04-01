@@ -417,9 +417,14 @@ public class ServiceStateLogic {
         public static final ConfigKey<Boolean> IGNORE_ENTITIES_WITH_SERVICE_UP_NULL = ConfigKeys.newBooleanConfigKey("enricher.service_state.children_and_members.ignore_entities.service_up_null", "Whether to ignore children reporting null values for service up", true);
         @SuppressWarnings("serial")
         public static final ConfigKey<Set<Lifecycle>> IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES = ConfigKeys.newConfigKey(new TypeToken<Set<Lifecycle>>() {},
-            "enricher.service_state.children_and_members.ignore_entities.service_state_values", 
-            "Service states (including null) which indicate an entity should be ignored when looking at children service states; anything apart from RUNNING not in this list will be treated as not healthy (by default just ON_FIRE will mean not healthy)", 
+            "enricher.service_state.children_and_members.ignore_entities.service_state_values",
+            "Service states (including null) which indicate an entity should be ignored when looking at children service states; anything apart from RUNNING not in this list will be treated as not healthy (by default just ON_FIRE will mean not healthy)",
             MutableSet.<Lifecycle>builder().addAll(Lifecycle.values()).add(null).remove(Lifecycle.RUNNING).remove(Lifecycle.ON_FIRE).build().asUnmodifiable());
+        @SuppressWarnings("serial")
+        public static final ConfigKey<Set<Lifecycle>> IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES_WHEN_STARTING = ConfigKeys.newConfigKey(new TypeToken<Set<Lifecycle>>() {},
+            "enricher.service_state.children_and_members.ignore_entities.starting_service_state_values",
+            "Service states (including null) which indicate an entity should be ignored when looking at children service states; anything apart from RUNNING not in this list will be treated as not healthy (by default just ON_FIRE will mean not healthy)",
+            MutableSet.<Lifecycle>builder().addAll(Lifecycle.values()).add(null).remove(Lifecycle.RUNNING).remove(Lifecycle.ON_FIRE).remove(Lifecycle.STARTING).remove(Lifecycle.CREATED).build().asUnmodifiable());
 
         protected String getKeyForMapSensor() {
             return Preconditions.checkNotNull(super.getUniqueTag());
@@ -503,7 +508,10 @@ public class ServiceStateLogic {
             Map<Entity, Boolean> values = getValues(SERVICE_UP);
             List<Entity> violators = MutableList.of();
             boolean ignoreNull = getConfig(IGNORE_ENTITIES_WITH_SERVICE_UP_NULL);
-            Set<Lifecycle> ignoreStates = getConfig(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES);
+            Lifecycle current = entity.sensors().get(Attributes.SERVICE_STATE_ACTUAL);
+            Set<Lifecycle> ignoreStates = (current == Lifecycle.STARTING)
+                    ? config().get(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES_WHEN_STARTING)
+                    : config().get(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES);
             int entries=0;
             int numUp=0;
             for (Map.Entry<Entity, Boolean> state: values.entrySet()) {
@@ -541,7 +549,10 @@ public class ServiceStateLogic {
             Map<Entity, Lifecycle> values = getValues(SERVICE_STATE_ACTUAL);
             int numRunning=0;
             List<Entity> onesNotHealthy=MutableList.of();
-            Set<Lifecycle> ignoreStates = getConfig(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES);
+            Lifecycle current = entity.sensors().get(Attributes.SERVICE_STATE_ACTUAL);
+            Set<Lifecycle> ignoreStates = (current == Lifecycle.STARTING)
+                    ? config().get(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES_WHEN_STARTING)
+                    : config().get(IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES);
             for (Map.Entry<Entity,Lifecycle> state: values.entrySet()) {
                 if (state.getValue()==Lifecycle.RUNNING) numRunning++;
                 else if (!ignoreStates.contains(state.getValue())) 
