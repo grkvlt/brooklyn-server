@@ -1126,18 +1126,8 @@ public class BasicBrooklynCatalog implements BrooklynCatalog {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <T,SpecT> Iterable<CatalogItem<T,SpecT>> getCatalogItems(Predicate<? super CatalogItem<T,SpecT>> filter) {
-        Iterable<CatalogItemDo<T,SpecT>> filtered = Iterables.filter((Iterable)catalog.getIdCache().values(), (Predicate<CatalogItem<T,SpecT>>)(Predicate) filter);
-        return Iterables.transform(filtered, BasicBrooklynCatalog.<T,SpecT>itemDoToDto());
-    }
-
-    private static <T,SpecT> Function<CatalogItemDo<T,SpecT>, CatalogItem<T,SpecT>> itemDoToDto() {
-        return new Function<CatalogItemDo<T,SpecT>, CatalogItem<T,SpecT>>() {
-            @Override
-            public CatalogItem<T,SpecT> apply(@Nullable CatalogItemDo<T,SpecT> item) {
-                if (item==null) return null;
-                return item.getDto();
-            }
-        };
+        Iterable<CatalogItemDo<T,SpecT>> filtered = Iterables.filter((Iterable) catalog.getIdCache().values(), filter);
+        return Iterables.transform(filtered, CatalogItemDo::getDto);
     }
     
     private static <T,SpecT> Function<CatalogItemDo<T, SpecT>, CatalogItem<T,SpecT>> itemDoToDtoAddingSelectedMetadataDuringScan(final Map<?, ?> catalogMetadata) {

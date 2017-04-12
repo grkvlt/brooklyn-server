@@ -75,13 +75,13 @@ public class StartableMethods {
         List<Startable> failedEntities = Lists.newArrayList();
         
         for (final Startable entity : entities) {
-            if (!Entities.isManaged((Entity)entity)) {
+            if (!Entities.isManaged((Entity) entity)) {
                 log.debug("Not stopping {} because it is not managed; continuing", entity);
                 continue;
             }
             try {
-                TaskAdaptable<Void> task = TaskTags.markInessential(Effectors.invocation((Entity)entity, Startable.STOP, Collections.emptyMap()));
-                DynamicTasks.submit(task, (Entity)entity).getUnchecked();
+                TaskAdaptable<Void> task = TaskTags.markInessential(Effectors.invocation((Entity) entity, Startable.STOP, Collections.emptyMap()));
+                DynamicTasks.submit(task, (Entity) entity).getUnchecked();
             } catch (Exception e) {
                 log.warn("Error stopping "+entity+"; continuing with shutdown", e);
                 exceptions.add(e);

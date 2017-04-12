@@ -108,9 +108,9 @@ public class RendererHints {
             }
         }
         if (optionalHintSuperClass != null) {
-            return (Set<T>)Sets.filter(found, Predicates.instanceOf(optionalHintSuperClass));
+            return (Set<T>) Sets.filter(found, Predicates.instanceOf(optionalHintSuperClass));
         } else {
-            return (Set<T>)found;
+            return (Set<T>) found;
         }
     }
 

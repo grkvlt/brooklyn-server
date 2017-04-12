@@ -455,10 +455,10 @@ public abstract class AbstractConfigMapImpl<TContainer extends BrooklynObject> i
     protected Set<ConfigKey<?>> findKeys(Predicate<? super ConfigKey<?>> filter, KeyFindingMode mode) {
         MutableSet<ConfigKey<?>> result = MutableSet.of();
         if (mode==KeyFindingMode.DECLARED_OR_PRESENT) {
-            result.addAll( Iterables.filter(getKeysAtContainer(getContainer()), filter) );
+            result.addAll(Iterables.filter(getKeysAtContainer(getContainer()), filter));
         }
 
-        for (ConfigKey<?> k: Iterables.filter(ownConfig.keySet(), filter)) {
+        for (ConfigKey<?> k : Iterables.filter(ownConfig.keySet(), filter)) {
             if (result.contains(k)) continue;
             if (mode!=KeyFindingMode.PRESENT_NOT_RESOLVED) {
                 ConfigKey<?> k2 = getKeyAtContainer(getContainer(), k);
@@ -479,7 +479,7 @@ public abstract class AbstractConfigMapImpl<TContainer extends BrooklynObject> i
                 throw new IllegalStateException("Unsupported key finding mode: "+mode);
             }
             // TODO due to recursive nature we call this N times for the Nth level ancestor 
-            result.addAll( filterOutRuntimeNotReinherited(inherited) );
+            result.addAll(filterOutRuntimeNotReinherited(inherited));
         }
         return result;
     }
