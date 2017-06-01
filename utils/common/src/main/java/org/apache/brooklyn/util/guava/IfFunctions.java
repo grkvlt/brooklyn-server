@@ -28,16 +28,22 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 
-/** Utilities for building {@link Function} instances which return specific values
- * (or {@link Supplier} or {@link Function} instances) when certain predicates are satisfied,
- * tested in order and returning the first matching,
- * with support for an "else" default value if none are satisfied (null by default). */
+/**
+ * Utilities for building {@link Function} instances for {@code if}-{@code then}
+ * constructs.
+ *
+ * Defines a mapping which returns a specifi value (or a {@link Supplier} or
+ * {@link Function} instance) when a particular {@link Predicate} is satisfied.
+ * Predicates are tested in the order they are added and the value for the first
+ * match is returned, optionally returning a default value if none are satisfied
+ * or {@code null} by default.
+ */
 public class IfFunctions {
 
     public static <I,O> IfFunctionBuilder<I,O> newInstance(Class<I> testType, Class<O> returnType) {
         return new IfFunctionBuilder<I,O>();
     }
-    
+
     public static <I> IfFunctionBuilderApplyingFirst<I> ifPredicate(Predicate<? super I> test) {
         return new IfFunctionBuilderApplyingFirst<I>(test);
     }
@@ -47,20 +53,19 @@ public class IfFunctions {
     public static <I> IfFunctionBuilderApplyingFirst<I> ifNotEquals(I test) {
         return ifPredicate(Predicates.not(Predicates.equalTo(test)));
     }
-    
+
     @Beta
     public static class IfFunction<I,O> implements Function<I,O> {
         protected final Map<Predicate<? super I>,Function<? super I,? extends O>> tests = new LinkedHashMap<Predicate<? super I>,Function<? super I,? extends O>>();
         protected Function<? super I,? extends O> defaultFunction = null;
-        
+
         protected IfFunction(IfFunction<I,O> input) {
             this.tests.putAll(input.tests);
             this.defaultFunction = input.defaultFunction;
         }
 
-        protected IfFunction() {
-        }
-        
+        protected IfFunction() { }
+
         @Override
         public O apply(I input) {
             for (Map.Entry<Predicate<? super I>,Function<? super I,? extends O>> test: tests.entrySet()) {
@@ -69,22 +74,22 @@ public class IfFunctions {
             }
             return defaultFunction==null ? null : defaultFunction.apply(input);
         }
-        
+
         @Override
         public String toString() {
             return "if["+tests+"]"+(defaultFunction!=null ? "-else["+defaultFunction+"]" : "");
         }
     }
-    
+
     @Beta
     public static class IfFunctionBuilder<I,O> extends IfFunction<I,O> {
         protected IfFunctionBuilder() { super(); }
         protected IfFunctionBuilder(IfFunction<I,O> input) { super(input); }
-        
+
         public IfFunction<I,O> build() {
             return new IfFunction<I,O>(this);
         }
-        
+
         public IfFunctionBuilderApplying<I,O> ifPredicate(Predicate<I> test) {
             return new IfFunctionBuilderApplying<I,O>(this, test);
         }
@@ -98,7 +103,6 @@ public class IfFunctions {
         public IfFunctionBuilder<I,O> defaultValue(O defaultValue) {
             return defaultApply(new Functionals.ConstantFunction<I,O>(defaultValue, defaultValue));
         }
-        @SuppressWarnings("unchecked")
         public IfFunctionBuilder<I,O> defaultGet(Supplier<? extends O> defaultSupplier) {
             return defaultApply(Functions.forSupplier(defaultSupplier));
         }
@@ -113,16 +117,15 @@ public class IfFunctions {
     public static class IfFunctionBuilderApplying<I,O> {
         private IfFunction<I, O> input;
         private Predicate<? super I> test;
-        
+
         private IfFunctionBuilderApplying(IfFunction<I,O> input, Predicate<? super I> test) {
             this.input = input;
             this.test = test;
         }
-        
+
         public IfFunctionBuilder<I,O> value(O value) {
             return apply(new Functionals.ConstantFunction<I,O>(value, value));
         }
-        @SuppressWarnings("unchecked")
         public IfFunctionBuilder<I,O> get(Supplier<? extends O> supplier) {
             return apply(Functions.forSupplier(supplier));
         }
@@ -136,19 +139,18 @@ public class IfFunctions {
     @Beta
     public static class IfFunctionBuilderApplyingFirst<I> {
         private Predicate<? super I> test;
-        
+
         private IfFunctionBuilderApplyingFirst(Predicate<? super I> test) {
             this.test = test;
         }
-        
+
         public <O> IfFunctionBuilder<I,O> value(O value) {
             return apply(new Functionals.ConstantFunction<I,O>(value, value));
         }
-        @SuppressWarnings("unchecked")
-        public <O> IfFunctionBuilder<I,O> get(Supplier<? extends O> supplier) {
-            return apply(Functions.forSupplier(supplier));
+        public <O> IfFunctionBuilder<I,O> get(Supplier<O> supplier) {
+            return apply(Functions.<O>forSupplier(supplier));
         }
-        public <O> IfFunctionBuilder<I,O> apply(Function<? super I,? extends O> function) {
+        public <O> IfFunctionBuilder<I,O> apply(Function<? super I,O> function) {
             IfFunctionBuilder<I, O> result = new IfFunctionBuilder<I,O>();
             result.tests.put(test, function);
             return result;
