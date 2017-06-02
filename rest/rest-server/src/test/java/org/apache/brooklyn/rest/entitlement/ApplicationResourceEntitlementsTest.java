@@ -21,35 +21,20 @@ package org.apache.brooklyn.rest.entitlement;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
-
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.brooklyn.api.entity.Application;
-import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.ImplementedBy;
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.mgmt.entitlement.EntitlementClass;
 import org.apache.brooklyn.api.mgmt.entitlement.EntitlementContext;
 import org.apache.brooklyn.api.mgmt.entitlement.EntitlementManager;
 import org.apache.brooklyn.core.entity.Attributes;
-import org.apache.brooklyn.core.internal.BrooklynProperties;
 import org.apache.brooklyn.core.mgmt.entitlement.Entitlements;
-import org.apache.brooklyn.core.mgmt.entitlement.PerUserEntitlementManager;
-import org.apache.brooklyn.core.mgmt.entitlement.WebEntitlementContext;
-import org.apache.brooklyn.core.test.BrooklynAppUnitTestSupport;
-import org.apache.brooklyn.core.test.entity.LocalManagementContextForTests;
 import org.apache.brooklyn.entity.stock.BasicStartable;
 import org.apache.brooklyn.entity.stock.BasicStartableImpl;
-import org.apache.brooklyn.rest.domain.ApiError;
-import org.apache.brooklyn.rest.resources.ApplicationResource;
-import org.apache.brooklyn.util.exceptions.Exceptions;
-import org.apache.brooklyn.util.http.HttpToolResponse;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 

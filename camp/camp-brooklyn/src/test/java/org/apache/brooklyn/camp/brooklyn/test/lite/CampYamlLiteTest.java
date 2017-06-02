@@ -40,8 +40,6 @@ import org.apache.brooklyn.camp.spi.AssemblyTemplate;
 import org.apache.brooklyn.camp.spi.pdp.PdpYamlTest;
 import org.apache.brooklyn.camp.test.mock.web.MockWebPlatform;
 import org.apache.brooklyn.core.catalog.CatalogPredicates;
-import org.apache.brooklyn.core.catalog.internal.BasicBrooklynCatalog;
-import org.apache.brooklyn.core.catalog.internal.CatalogDto;
 import org.apache.brooklyn.core.catalog.internal.CatalogUtils;
 import org.apache.brooklyn.core.config.ConfigKeys;
 import org.apache.brooklyn.core.effector.AddChildrenEffector;

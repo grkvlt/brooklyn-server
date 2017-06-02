@@ -21,7 +21,6 @@ package org.apache.brooklyn.location.jclouds;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.apache.brooklyn.core.config.Sanitizer;
 import org.jclouds.domain.LoginCredentials;
 
 import com.google.common.base.MoreObjects;

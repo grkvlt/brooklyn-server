@@ -31,7 +31,6 @@ import javax.ws.rs.ext.Provider;
 import org.apache.brooklyn.api.mgmt.ManagementContext;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
-import org.apache.brooklyn.core.internal.BrooklynProperties;
 import org.apache.brooklyn.core.server.BrooklynServiceAttributes;
 import org.apache.brooklyn.rest.util.OsgiCompat;
 import org.apache.brooklyn.util.core.json.BrooklynObjectsJsonMapper;

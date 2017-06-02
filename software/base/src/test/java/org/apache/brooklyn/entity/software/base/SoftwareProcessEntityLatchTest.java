@@ -163,7 +163,7 @@ public class SoftwareProcessEntityLatchTest extends BrooklynAppUnitTestSupport {
     }
 
     @Test(dataProvider="latchAndTaskNamesProvider", timeOut=Asserts.THIRTY_SECONDS_TIMEOUT_MS)
-    public void testConcurrency(ConfigKey<Boolean> latch, List<String> _) throws Exception {
+    public void testConcurrency(ConfigKey<Boolean> latch, List<String> list) throws Exception {
         final int maxConcurrency = 2;
         final ReleaseableLatch latchSemaphore = ReleaseableLatch.Factory.newMaxConcurrencyLatch(maxConcurrency);
         final AttributeSensor<Object> latchSensor = Sensors.newSensor(Object.class, "latch");
@@ -188,7 +188,7 @@ public class SoftwareProcessEntityLatchTest extends BrooklynAppUnitTestSupport {
     }
 
     @Test(dataProvider="latchAndTaskNamesProvider"/*, timeOut=Asserts.THIRTY_SECONDS_TIMEOUT_MS*/)
-    public void testFailedReleaseableUnblocks(final ConfigKey<Boolean> latch, List<String> _) throws Exception {
+    public void testFailedReleaseableUnblocks(final ConfigKey<Boolean> latch, List<String> list) throws Exception {
         final int maxConcurrency = 1;
         final ReleaseableLatch latchSemaphore = ReleaseableLatch.Factory.newMaxConcurrencyLatch(maxConcurrency);
         final AttributeSensor<Object> latchSensor = Sensors.newSensor(Object.class, "latch");

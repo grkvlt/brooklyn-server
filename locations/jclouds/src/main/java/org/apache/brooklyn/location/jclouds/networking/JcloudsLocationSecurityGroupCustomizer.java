@@ -601,7 +601,6 @@ public class JcloudsLocationSecurityGroupCustomizer extends BasicJcloudsLocation
 
         @Override
         public boolean apply(Exception input) {
-            @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
             AWSResponseException exception = Exceptions.getFirstThrowableOfType(input, AWSResponseException.class);
             if (exception != null) {
                 String code = exception.getError().getCode();

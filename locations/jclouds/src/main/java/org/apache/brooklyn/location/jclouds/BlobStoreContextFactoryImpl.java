@@ -29,7 +29,6 @@ import org.apache.brooklyn.core.location.LocationConfigKeys;
 import org.apache.brooklyn.core.location.cloud.CloudLocationConfig;
 import org.apache.brooklyn.core.mgmt.persist.DeserializingJcloudsRenamesProvider;
 import org.apache.brooklyn.util.collections.MutableList;
-import org.apache.brooklyn.util.core.config.ConfigBag;
 import org.jclouds.Constants;
 import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStoreContext;

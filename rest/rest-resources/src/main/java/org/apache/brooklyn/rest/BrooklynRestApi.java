@@ -46,8 +46,6 @@ import com.google.common.collect.Iterables;
 
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 
-
-@SuppressWarnings("deprecation")
 public class BrooklynRestApi {
 
     public static Iterable<AbstractBrooklynRestResource> getBrooklynRestResources() {

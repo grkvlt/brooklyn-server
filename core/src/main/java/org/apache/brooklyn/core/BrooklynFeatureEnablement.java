@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.brooklyn.api.mgmt.ha.HighAvailabilityMode;
 import org.apache.brooklyn.core.internal.BrooklynProperties;
-import org.apache.brooklyn.core.internal.storage.BrooklynStorage;
 import org.apache.brooklyn.util.core.internal.ssh.ShellTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

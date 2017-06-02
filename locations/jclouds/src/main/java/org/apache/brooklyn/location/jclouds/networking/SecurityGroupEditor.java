@@ -34,8 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.regex.Pattern;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**

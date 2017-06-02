@@ -75,7 +75,6 @@ public class JcloudsReachableAddressStubbedTest extends AbstractJcloudsStubbedUn
     // TODO Aim is to test the various situations/permutations, where we pass in different config.
     // More tests still need to be added.
 
-    @SuppressWarnings("unused")
     private static final Logger LOG = LoggerFactory.getLogger(JcloudsReachableAddressStubbedTest.class);
 
     protected String reachableIp;

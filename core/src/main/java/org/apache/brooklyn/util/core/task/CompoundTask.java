@@ -47,8 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class CompoundTask<T> extends BasicTask<List<T>> implements HasTaskChildren {
 
-    @SuppressWarnings("unused")
-    private static final Logger log = LoggerFactory.getLogger(CompoundTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CompoundTask.class);
                 
     protected final List<Task<? extends T>> children;
     protected final List<Object> result;
@@ -90,7 +89,7 @@ public abstract class CompoundTask<T> extends BasicTask<List<T>> implements HasT
             Task subtask;
             if (job instanceof TaskAdaptable) { subtask = ((TaskAdaptable)job).asTask(); }
             else if (job instanceof Closure)  {
-                log.warn("Use of groovy.lang.Closure is deprecated, in CompoundTask jobs");
+                LOG.warn("Use of groovy.lang.Closure is deprecated, in CompoundTask jobs");
                 subtask = new BasicTask<T>((Closure) job);
             }
             else if (job instanceof Callable) { subtask = new BasicTask<T>((Callable) job); }

@@ -20,7 +20,6 @@ package org.apache.brooklyn.entity;
 
 import java.util.Map;
 
-import org.apache.brooklyn.location.jclouds.JcloudsLocationConfig;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;

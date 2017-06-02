@@ -19,7 +19,6 @@
 package org.apache.brooklyn.location.jclouds;
 
 import org.apache.brooklyn.api.location.Location;
-import org.apache.brooklyn.util.core.config.ConfigBag;
 import org.jclouds.blobstore.BlobStoreContext;
 
 /**

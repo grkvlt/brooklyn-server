@@ -19,8 +19,6 @@
 package org.apache.brooklyn.core.test.qa.longevity;
 
 import org.testng.annotations.Test;
-import org.apache.brooklyn.api.location.LocationSpec;
-import org.apache.brooklyn.core.location.SimulatedLocation;
 import org.apache.brooklyn.util.javalang.JavaClassNames;
 
 /**

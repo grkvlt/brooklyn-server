@@ -38,7 +38,6 @@ import org.apache.brooklyn.core.entity.RecordingSensorEventListener;
 import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.mgmt.rebind.RebindTestFixtureWithApp;
 import org.apache.brooklyn.core.sensor.Sensors;
-import org.apache.brooklyn.core.test.entity.TestApplication;
 import org.apache.brooklyn.entity.software.base.SoftwareProcessEntityRebindTest.MyProvisioningLocation;
 import org.apache.brooklyn.entity.software.base.SoftwareProcessEntityTest.SimulatedDriver;
 import org.apache.brooklyn.feed.function.FunctionFeed;

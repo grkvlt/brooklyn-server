@@ -169,12 +169,10 @@ public class JcloudsLocationReachabilityPredicateInstantiationTest {
     }
 
     public static class RecordingReachabilityCheckProtectedMapConstructor implements Predicate<HostAndPort> {
-        @SuppressWarnings("unused")
         public RecordingReachabilityCheckProtectedMapConstructor() {
             TEST_INIT_MAP_AND_EMPTY_CONSTRUCTOR_COUNTER.getAndIncrement();
         }
 
-        @SuppressWarnings("unused")
         protected RecordingReachabilityCheckProtectedMapConstructor(Map<String, Object> flags) {
         }
 

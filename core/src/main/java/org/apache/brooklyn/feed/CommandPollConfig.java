@@ -94,7 +94,6 @@ public class CommandPollConfig<T> extends PollConfig<SshPollValue, T, CommandPol
         return getEnvSupplier().get();
     }
     
-    @SuppressWarnings("unused")
     public Supplier<Map<String,String>> getEnvSupplier() {
         return new CombiningEnvSupplier(dynamicEnvironmentSupplier);
     }
