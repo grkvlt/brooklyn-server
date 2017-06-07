@@ -18,19 +18,15 @@
  */
 package org.apache.brooklyn.core.mgmt.internal;
 
-import static org.apache.brooklyn.util.JavaGroovyEquivalents.elvis;
 import static org.apache.brooklyn.util.JavaGroovyEquivalents.groovyTruth;
 import static org.apache.brooklyn.util.JavaGroovyEquivalents.join;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.brooklyn.api.entity.Entity;
@@ -57,33 +53,33 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 
 /**
  * A {@link SubscriptionManager} that stores subscription details locally.
  */
 public class LocalSubscriptionManager extends AbstractSubscriptionManager {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(LocalSubscriptionManager.class);
 
     protected final ExecutionManager em;
-    
+
     private final String tostring = "SubscriptionContext("+Identifiers.getBase64IdFromValue(System.identityHashCode(this), 5)+")";
 
     private final AtomicLong totalEventsPublishedCount = new AtomicLong();
     private final AtomicLong totalEventsDeliveredCount = new AtomicLong();
-    
-    @SuppressWarnings("rawtypes")
-    protected final ConcurrentMap<String, Subscription> allSubscriptions = new ConcurrentHashMap<String, Subscription>();
-    @SuppressWarnings("rawtypes")
-    protected final ConcurrentMap<Object, Set<Subscription>> subscriptionsBySubscriber = new ConcurrentHashMap<Object, Set<Subscription>>();
-    @SuppressWarnings("rawtypes")
-    protected final ConcurrentMap<Object, Set<Subscription>> subscriptionsByToken = new ConcurrentHashMap<Object, Set<Subscription>>();
-    
+
+    protected final Map<String, Subscription<?>> allSubscriptions = Maps.newConcurrentMap();
+    protected final SetMultimap<Object, Subscription<?>> subscriptionsBySubscriber = Multimaps.synchronizedSetMultimap(HashMultimap.create());
+    protected final SetMultimap<Object, Subscription<?>> subscriptionsByToken = Multimaps.synchronizedSetMultimap(HashMultimap.create());
+
     public LocalSubscriptionManager(ExecutionManager m) {
         this.em = m;
     }
-        
+
     public long getNumSubscriptions() {
         return allSubscriptions.size();
     }
@@ -92,13 +88,13 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
     public long getTotalEventsPublished() {
         return totalEventsPublishedCount.get();
     }
-    
+
     /** The total number of sensor change events submitted for delivery, counting multiple deliveries for multipe subscribers (see {@link #getTotalEventsPublished()}),
      * but excluding initial notifications, and incremented when submitted ie prior to delivery */
     public long getTotalEventsDelivered() {
         return totalEventsDeliveredCount.get();
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     protected synchronized <T> SubscriptionHandle subscribe(Map<String, Object> flags, final Subscription<T> s) {
@@ -115,21 +111,21 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
             s.subscriberExecutionManagerTag = flags.remove("subscriberExecutionManagerTag");
             s.subscriberExecutionManagerTagSupplied = true;
         } else {
-            s.subscriberExecutionManagerTag = 
-                s.subscriber instanceof Entity ? "subscription-delivery-entity-"+((Entity)s.subscriber).getId() : 
-                s.subscriber instanceof String ? "subscription-delivery-string["+s.subscriber+"]" : 
+            s.subscriberExecutionManagerTag =
+                s.subscriber instanceof Entity ? "subscription-delivery-entity-"+((Entity)s.subscriber).getId() :
+                s.subscriber instanceof String ? "subscription-delivery-string["+s.subscriber+"]" :
                 "subscription-delivery-object["+s.subscriber+"]";
             s.subscriberExecutionManagerTagSupplied = false;
         }
         s.eventFilter = (Predicate<SensorEvent<T>>) flags.remove("eventFilter");
         boolean notifyOfInitialValue = Boolean.TRUE.equals(flags.remove("notifyOfInitialValue"));
         s.flags = flags;
-        
-        if (LOG.isDebugEnabled()) LOG.debug("Creating subscription {} for {} on {} {} in {}", new Object[] {s.id, s.subscriber, producer, sensor, this});
+
+        LOG.debug("Creating subscription {} for {} on {} {} in {}", new Object[] {s.id, s.subscriber, producer, sensor, this});
         allSubscriptions.put(s.id, s);
-        addToMapOfSets(subscriptionsByToken, makeEntitySensorToken(s.producer, s.sensor), s);
-        if (s.subscriber!=null) {
-            addToMapOfSets(subscriptionsBySubscriber, s.subscriber, s);
+        subscriptionsByToken.put(makeEntitySensorToken(producer, sensor), s);
+        if (s.subscriber != null) {
+            subscriptionsBySubscriber.put(s.subscriber, s);
         }
         if (!s.subscriberExecutionManagerTagSupplied && s.subscriberExecutionManagerTag!=null) {
             ((BasicExecutionManager) em).setTaskSchedulerForTag(s.subscriberExecutionManagerTag, SingleThreadedScheduler.class);
@@ -148,23 +144,23 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
                 submitPublishEvent(s, new BasicSensorEvent<T>(s.sensor, s.producer, val), true);
             }
         }
-        
+
         return s;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Set<SubscriptionHandle> getSubscriptionsForSubscriber(Object subscriber) {
-        return (Set<SubscriptionHandle>) ((Set<?>) elvis(subscriptionsBySubscriber.get(subscriber), Collections.emptySet()));
+        return ImmutableSet.copyOf(subscriptionsBySubscriber.get(subscriber));
     }
 
     @Override
     public synchronized Set<SubscriptionHandle> getSubscriptionsForEntitySensor(Entity source, Sensor<?> sensor) {
-        Set<SubscriptionHandle> subscriptions = new LinkedHashSet<SubscriptionHandle>();
-        subscriptions.addAll(elvis(subscriptionsByToken.get(makeEntitySensorToken(source, sensor)), Collections.emptySet()));
-        subscriptions.addAll(elvis(subscriptionsByToken.get(makeEntitySensorToken(null, sensor)), Collections.emptySet()));
-        subscriptions.addAll(elvis(subscriptionsByToken.get(makeEntitySensorToken(source, null)), Collections.emptySet()));
-        subscriptions.addAll(elvis(subscriptionsByToken.get(makeEntitySensorToken(null, null)), Collections.emptySet()));
+        Set<SubscriptionHandle> subscriptions = ImmutableSet.<SubscriptionHandle>builder()
+                .addAll(subscriptionsByToken.get(makeEntitySensorToken(source, sensor)))
+                .addAll(subscriptionsByToken.get(makeEntitySensorToken(null, sensor)))
+                .addAll(subscriptionsByToken.get(makeEntitySensorToken(source, null)))
+                .addAll(subscriptionsByToken.get(makeEntitySensorToken(null, null)))
+                .build();
         return subscriptions;
     }
 
@@ -178,37 +174,38 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
     public synchronized boolean unsubscribe(SubscriptionHandle sh) {
         if (!(sh instanceof Subscription)) throw new IllegalArgumentException("Only subscription handles of type Subscription supported: sh="+sh+"; type="+(sh != null ? sh.getClass().getCanonicalName() : null));
         Subscription s = (Subscription) sh;
-        boolean result = allSubscriptions.remove(s.id) != null;
-        boolean b2 = removeFromMapOfCollections(subscriptionsByToken, makeEntitySensorToken(s.producer, s.sensor), s);
-        assert result==b2;
-        if (s.subscriber!=null) {
-            boolean b3 = removeFromMapOfCollections(subscriptionsBySubscriber, s.subscriber, s);
-            assert b3 == b2;
+        Object token = makeEntitySensorToken(s.producer, s.sensor);
+
+        Subscription removed = allSubscriptions.remove(s.id);
+        subscriptionsByToken.remove(token, s);
+        if (s.subscriber != null) {
+            subscriptionsBySubscriber.remove(s.subscriber, s);
         }
 
         // FIXME ALEX - this seems wrong
         ((BasicExecutionManager) em).setTaskSchedulerForTag(s.subscriberExecutionManagerTag, SingleThreadedScheduler.class);
-        return result;
+
+        return removed != null;
     }
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public <T> void publish(final SensorEvent<T> event) {
         // REVIEW 1459 - execution
-        
+
         // delivery in parallel/background, using execution manager
-        
+
         // subscriptions, should define SingleThreadedScheduler for any subscriber ID tag
         // in order to ensure callbacks are invoked in the order they are submitted
         // (recommend exactly one per subscription to prevent deadlock)
         // this is done with:
         // em.setTaskSchedulerForTag(subscriberId, SingleThreadedScheduler.class);
-        
+
         //note, generating the notifications must be done in the calling thread to preserve order
         //e.g. emit(A); emit(B); should cause onEvent(A); onEvent(B) in that order
         if (LOG.isTraceEnabled()) LOG.trace("{} got event {}", this, event);
         totalEventsPublishedCount.incrementAndGet();
-        
+
         Set<Subscription> subs = (Set<Subscription>) ((Set<?>) getSubscriptionsForEntitySensor(event.getSource(), event.getSensor()));
         if (groovyTruth(subs)) {
             if (LOG.isTraceEnabled()) LOG.trace("sending {}, {} to {}", new Object[] {event.getSensor().getName(), event, join(subs, ",")});
@@ -219,19 +216,19 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
             }
         }
     }
-    
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void submitPublishEvent(final Subscription s, final SensorEvent<?> event, final boolean isInitial) {
         if (s.eventFilter!=null && !s.eventFilter.apply(event))
             return;
-        
+
         List<Object> tags = MutableList.builder()
             .addAll(s.subscriberExtraExecTags == null ? ImmutableList.of() : s.subscriberExtraExecTags)
             .add(s.subscriberExecutionManagerTag)
             .add(BrooklynTaskTags.SENSOR_TAG)
             .build()
             .asUnmodifiable();
-        
+
         StringBuilder name = new StringBuilder("sensor ");
         StringBuilder description = new StringBuilder("Sensor ");
         String sensorName = s.sensor==null ? "<null-sensor>" : s.sensor.getName();
@@ -241,23 +238,23 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
             name.append(":");
         }
         name.append(sensorName);
-        
+
         description.append(sensorName);
         description.append(" on ");
         description.append(sourceName==null ? "<null-source>" : sourceName);
         description.append(" publishing to ");
         description.append(s.subscriber instanceof Entity ? ((Entity)s.subscriber).getId() : s.subscriber);
-        
+
         if (includeDescriptionForSensorTask(event)) {
             name.append(" ");
             name.append(event.getValue());
             description.append(", value: ");
             description.append(event.getValue());
         }
-        Map<String, Object> execFlags = MutableMap.of("tags", tags, 
+        Map<String, Object> execFlags = MutableMap.of("tags", tags,
             "displayName", name.toString(),
             "description", description.toString());
-        
+
         em.submit(execFlags, new Runnable() {
             @Override
             public String toString() {
@@ -272,7 +269,7 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
                 try {
                     int count = s.eventCount.incrementAndGet();
                     if (count > 0 && count % 1000 == 0) LOG.debug("{} events for subscriber {}", count, s);
-                    
+
                     s.listener.onEvent(event);
                 } catch (Throwable t) {
                     if (event!=null && event.getSource()!=null && Entities.isNoLongerManaged(event.getSource())) {
@@ -283,13 +280,13 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
                 }
             }});
     }
-    
+
     protected boolean includeDescriptionForSensorTask(SensorEvent<?> event) {
         // just do it for simple/quick things to avoid expensive toStrings
         // (info is rarely useful, but occasionally it will be)
         if (event.getValue()==null) return true;
         Class<?> clazz = event.getValue().getClass();
-        if (clazz.isEnum() || clazz.isPrimitive() || Number.class.isAssignableFrom(clazz) || 
+        if (clazz.isEnum() || clazz.isPrimitive() || Number.class.isAssignableFrom(clazz) ||
             clazz.equals(String.class)) return true;
         return false;
     }
@@ -298,17 +295,17 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
     public String toString() {
         return tostring;
     }
-    
+
     /**
      * Copied from LanguageUtils.groovy, to remove dependency.
-     * 
+     *
      * Adds the given value to a collection in the map under the key.
-     * 
+     *
      * A collection (as {@link LinkedHashMap}) will be created if necessary,
      * synchronized on map for map access/change and set for addition there
      *
      * @return the updated set (instance, not copy)
-     * 
+     *
      * @deprecated since 0.5; use {@link HashMultimap}, and {@link Multimaps#synchronizedSetMultimap(com.google.common.collect.SetMultimap)}
      */
     @Deprecated
@@ -340,11 +337,11 @@ public class LocalSubscriptionManager extends AbstractSubscriptionManager {
 
     /**
      * Copied from LanguageUtils.groovy, to remove dependency.
-     * 
+     *
      * Removes the given value from a collection in the map under the key.
      *
      * @return the updated set (instance, not copy)
-     * 
+     *
      * @deprecated since 0.5; use {@link ArrayListMultimap} or {@link HashMultimap}, and {@link Multimaps#synchronizedListMultimap(com.google.common.collect.ListMultimap)} etc
      */
     @Deprecated
