@@ -21,6 +21,7 @@ package org.apache.brooklyn.rest.resources;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.awt.*;
 import java.io.ByteArrayInputStream;
@@ -67,6 +68,7 @@ import org.apache.brooklyn.util.collections.MutableMap;
 import org.apache.brooklyn.util.core.ResourceUtils;
 import org.apache.brooklyn.util.core.osgi.BundleMaker;
 import org.apache.brooklyn.util.javalang.Reflections;
+import org.apache.brooklyn.util.net.Networking;
 import org.apache.brooklyn.util.os.Os;
 import org.apache.brooklyn.util.osgi.OsgiTestResources;
 import org.apache.brooklyn.util.stream.Streams;
@@ -559,7 +561,13 @@ public class CatalogResourceTest extends BrooklynRestResourceTest {
 
     @Test
     public void testAddUnreachableItem() {
-        addAddCatalogItemWithInvalidBundleUrl("http://0.0.0.0/can-not-connect");
+        for (int port = Networking.MIN_PORT_NUMBER; port < Networking.MAX_PORT_NUMBER; port++) {
+            if (Networking.isPortAvailable(port)) {
+                addAddCatalogItemWithInvalidBundleUrl(String.format("http://127.0.0.1:%d/can-not-connect", port));
+                return;
+            }
+        }
+        fail("No free port available to test unreachable item");
     }
 
     @Test
@@ -892,16 +900,17 @@ public class CatalogResourceTest extends BrooklynRestResourceTest {
         String symbolicName = "my.catalog.entity.id";
         String yaml = Joiner.on("\n").join(
                 "brooklyn.catalog:",
-                "  id: " + symbolicName,
                 "  version: " + TEST_VERSION,
-                "  itemType: entity",
-                "  name: My Catalog App",
-                "  description: My description",
-                "  icon_url: classpath:/org/apache/brooklyn/test/osgi/entities/icon.gif",
-                "  libraries:",
-                "  - url: " + bundleUrl,
-                "  item:",
-                "    type: org.apache.brooklyn.core.test.entity.TestEntity");
+                "  brooklyn.libraries:",
+                "    - " + bundleUrl,
+                "  items:",
+                "    - id: " + symbolicName,
+                "      itemType: entity",
+                "      name: My Catalog App",
+                "      description: My description",
+                "      icon_url: classpath:/org/apache/brooklyn/test/osgi/entities/icon.gif",
+                "      item:",
+                "        type: org.apache.brooklyn.core.test.entity.TestEntity");
 
         Response response = client().path("/catalog")
                 .post(yaml);
