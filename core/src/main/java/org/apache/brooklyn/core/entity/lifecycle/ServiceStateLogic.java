@@ -504,7 +504,7 @@ public class ServiceStateLogic {
 
         final static Set<ConfigKey<?>> RECONFIGURABLE_KEYS = ImmutableSet.<ConfigKey<?>>of(
             UP_QUORUM_CHECK, RUNNING_QUORUM_CHECK,
-            DERIVE_SERVICE_NOT_UP, DERIVE_SERVICE_NOT_UP,
+            DERIVE_SERVICE_NOT_UP, DERIVE_SERVICE_PROBLEMS,
             IGNORE_ENTITIES_WITH_SERVICE_UP_NULL, IGNORE_ENTITIES_WITH_THESE_SERVICE_STATES);
 
         @Override
