@@ -17,7 +17,7 @@
     limitations under the License.
 -->
 <features xmlns="http://karaf.apache.org/xmlns/features/v1.4.0"
-          name="org.apache.brooklyn-${project.version}"
+          name="${project.groupId}-${project.version}"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:noNamespaceSchemaLocation="http://karaf.apache.org/xmlns/features/v1.4.0">
 
