@@ -268,7 +268,81 @@
         <module>karaf</module>
 
         <module>utils/rt-felix</module>
-
     </modules>
 
+    <profiles>
+        <profile>
+            <!--
+                Security Scanning of Dependencies
+
+                Uses the OWASP vulnerability database (NVD) to check the Jar files
+                in the dependency tree for library versions that have security issues.
+                
+                Documentation at https://owasp.org/www-project-dependency-check/
+            -->
+            <id>SecurityScan</id>
+            <activation>
+                <property>
+                    <name>security-scan</name>
+                </property>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.commonjava.maven.plugins</groupId>
+                            <artifactId>directory-maven-plugin</artifactId>
+                            <version>0.1</version>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.owasp</groupId>
+                            <artifactId>dependency-check-maven</artifactId>
+                            <version>6.0.3</version>
+                            <configuration>
+                                <skipProvidedScope>true</skipProvidedScope>
+                                <skipRuntimeScope>true</skipRuntimeScope>
+                                <skipTestScope>true</skipTestScope>
+                                <failBuildOnCVSS>10</failBuildOnCVSS><!-- maximum severity -->
+                                <formats>HTML,JSON</formats>
+                                <prettyPrint>true</prettyPrint>
+                                <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled><!-- ignore js -->
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+                <plugins>  
+                    <plugin>
+                        <!-- perform security scan of dependencies -->
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <executions>
+                            <execution>
+                                <id>owasp-test</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <reporting>
+                <plugins>
+                    <plugin>
+                        <!-- generate aggregate scan report -->
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <reportSets>
+                            <reportSet>
+                                <reports>
+                                    <report>aggregate</report>
+                                </reports>
+                            </reportSet>
+                        </reportSets>
+                    </plugin>
+                </plugins>
+            </reporting>
+        </profile>
+    </profiles>
 </project>
