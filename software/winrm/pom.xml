@@ -43,6 +43,17 @@
             <groupId>io.cloudsoft.windows</groupId>
             <artifactId>winrm4j</artifactId>
             <version>${winrm4j.version}</version>
+            <exclusions>
+                <exclusion>
+                    <!-- Would otherwise pull in 3.3.5 (Brooklyn uses 3.3.8) -->
+                    <groupId>org.apache.cxf</groupId>
+                    <artifactId>cxf-rt-transports-http</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- test -->

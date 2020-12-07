@@ -58,6 +58,11 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
+            <!-- excluded from httpclient dependency in parent -->
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>

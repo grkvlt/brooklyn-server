@@ -62,6 +62,10 @@
                   <groupId>com.google.guava</groupId>
                   <artifactId>guava</artifactId>
                 </exclusion>
+                <exclusion>
+                  <groupId>org.apache.cxf</groupId>
+                  <artifactId>cxf-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -80,6 +84,10 @@
                 <exclusion>
                   <groupId>com.google.guava</groupId>
                   <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                  <groupId>org.apache.cxf</groupId>
+                  <artifactId>cxf-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -115,6 +123,11 @@
                     <!-- jackson above v 2.10.0 wants 4.2 but woodstox 5 on 3.1.4 -->
                     <groupId>org.codehaus.woodstox</groupId>
                     <artifactId>stax2-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- conflicts with CXF -->
+                    <groupId>jakarta.activation</groupId>
+                    <artifactId>jakarta.activation-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
